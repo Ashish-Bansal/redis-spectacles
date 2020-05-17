@@ -13,6 +13,14 @@ type Addable interface {
 
 // Add returns Iterator in case it's possible to create one from sent object, otherwise returns error.
 func Add(a interface{}, b interface{}) (interface{}, error) {
+	if a == nil {
+		return b, nil
+	}
+
+	if b == nil {
+		return a, nil
+	}
+
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return nil, errors.New("Add fn called on interfaces of two different types")
 	}
