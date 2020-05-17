@@ -14,7 +14,7 @@ func (it *stringIterator) Next() (interface{}, error) {
 		return nil, ErrEndOfContainer
 	}
 	it.index++
-	return it.str[it.index-1], nil
+	return string(it.str[it.index-1]), nil
 }
 
 func getIterator(str string) Iterator {
