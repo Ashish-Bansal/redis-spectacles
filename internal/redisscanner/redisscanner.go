@@ -18,16 +18,11 @@ func GetRedisClient(redisURL string) (*redis.Client, error) {
 	return redisClient, err
 }
 
-// ScanRedisKeys scans redis database based on given pattern and provides progress updates using channel.
-func ScanRedisKeys(redisClient *redis.Client, pattern string, batchSize int64, keysScannedProgress chan<- int) []string {
-	allKeys := make([]string, 0)
-	totalKeys := 0
-
+// ScanRedisKeys scans redis database based on given pattern and sends them via channel.
+func ScanRedisKeys(redisClient *redis.Client, pattern string, batchSize int64, keyReceiver chan<- string) {
 	iterator := redisClient.Scan(0, pattern, batchSize).Iterator()
 	for iterator.Next() {
-		allKeys = append(allKeys, iterator.Val())
-		totalKeys++
-		keysScannedProgress <- totalKeys
+		keyReceiver <- iterator.Val()
 	}
-	return allKeys
+	close(keyReceiver)
 }
