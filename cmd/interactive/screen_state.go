@@ -3,6 +3,7 @@ package interactive
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -93,6 +94,15 @@ func getFooter(node *trie.Node) []ScreenRow {
 	return footer
 }
 
+func sortEdges(ScreenState *ScreenState, node *trie.Node, edges []*trie.Edge) []*trie.Edge {
+	sort.Slice(edges, func(i int, j int) bool {
+		a := node.Edges[edges[i]]
+		b := node.Edges[edges[j]]
+		return a.Count() > b.Count()
+	})
+	return edges
+}
+
 func formatCount(count int) string {
 	if count < 10000 {
 		return strconv.Itoa(count)
@@ -105,6 +115,7 @@ func formatCount(count int) string {
 func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
 	body := make([]ScreenRow, 0)
 	edges := node.GetEdges()
+	edges = sortEdges(screenState, node, edges)
 
 	for _, edge := range edges {
 		childNode := node.Edges[edge]
