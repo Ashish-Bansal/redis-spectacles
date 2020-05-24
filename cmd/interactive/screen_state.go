@@ -18,27 +18,28 @@ type ScreenState struct {
 }
 
 func (screenState *ScreenState) render() {
-	style := tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)
 	for index, message := range screenState.Header {
 		row := index
-		setStringInScreen(screenState.Screen, 0, row, message, style)
-		setRowBackground(screenState.Screen, row, style)
+		setStringInScreen(screenState.Screen, 0, row, message, highlighedStyle)
+		setRowBackground(screenState.Screen, row, highlighedStyle)
 	}
 
-	style = tcell.StyleDefault
 	headerLength := len(screenState.Header)
 	for index, message := range screenState.Body {
 		row := index + headerLength
-		setStringInScreen(screenState.Screen, 0, row, message, style)
+		setStringInScreen(screenState.Screen, 0, row, message, normalStyle)
+	}
+
+	if len(screenState.Body) != 0 {
+		setRowBackground(screenState.Screen, len(screenState.Header), highlighedStyle)
 	}
 
 	_, height := screenState.Screen.Size()
-	style = tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)
 	footerLength := len(screenState.Footer)
 	for index, message := range screenState.Footer {
 		row := height + index - footerLength
-		setStringInScreen(screenState.Screen, 0, row, message, style)
-		setRowBackground(screenState.Screen, row, style)
+		setStringInScreen(screenState.Screen, 0, row, message, highlighedStyle)
+		setRowBackground(screenState.Screen, row, highlighedStyle)
 	}
 
 	screenState.Screen.Show()
@@ -87,6 +88,42 @@ func startEventLoop(screenState *ScreenState) {
 	}
 }
 
+func handleKeyDown(screenState *ScreenState) {
+	screen := screenState.Screen
+	currentBodyRow := screenState.CurrentBodyRow
+	newBodyRow := currentBodyRow + 1
+
+	maxBodySize := len(screenState.Body)
+	if newBodyRow == maxBodySize {
+		return
+	}
+
+	currentRow := currentBodyRow + len(screenState.Header)
+	newRow := newBodyRow + len(screenState.Header)
+
+	setRowBackground(screen, currentRow, normalStyle)
+	setRowBackground(screen, newRow, highlighedStyle)
+	screen.Show()
+	screenState.CurrentBodyRow++
+}
+
+func handleKeyUp(screenState *ScreenState) {
+	screen := screenState.Screen
+	currentBodyRow := screenState.CurrentBodyRow
+	newBodyRow := currentBodyRow - 1
+	if newBodyRow < 0 {
+		return
+	}
+
+	currentRow := currentBodyRow + len(screenState.Header)
+	newRow := newBodyRow + len(screenState.Header)
+
+	setRowBackground(screen, currentRow, normalStyle)
+	setRowBackground(screen, newRow, highlighedStyle)
+	screen.Show()
+	screenState.CurrentBodyRow--
+}
+
 func handleKeyEvent(screenState *ScreenState, event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyRune:
@@ -97,6 +134,10 @@ func handleKeyEvent(screenState *ScreenState, event *tcell.EventKey) {
 	case tcell.KeyCtrlC:
 		screenState.Screen.Fini()
 		os.Exit(1)
+	case tcell.KeyUp:
+		handleKeyUp(screenState)
+	case tcell.KeyDown:
+		handleKeyDown(screenState)
 	}
 }
 
