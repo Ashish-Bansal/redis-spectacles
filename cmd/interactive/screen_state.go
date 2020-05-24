@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"container/list"
+
 	"github.com/Ashish-Bansal/redis-spectacles/pkg/trie"
 	"github.com/gdamore/tcell"
 )
@@ -14,6 +16,7 @@ type ScreenRow struct {
 	Message     string
 	Style       tcell.Style
 	PaddingLeft int
+	Metadata    interface{}
 }
 
 // ScreenState represents screen state based off trie
@@ -23,6 +26,7 @@ type ScreenState struct {
 	Footer         []ScreenRow
 	CurrentBodyRow int
 	Screen         tcell.Screen
+	NodeStack      *list.List
 }
 
 func renderScreenRow(screen tcell.Screen, column int, row int, screenRow ScreenRow) {
@@ -32,28 +36,31 @@ func renderScreenRow(screen tcell.Screen, column int, row int, screenRow ScreenR
 }
 
 func (screenState *ScreenState) render() {
+	screen := screenState.Screen
+	screen.Clear()
+
 	for index, screenRow := range screenState.Header {
 		row := index
-		renderScreenRow(screenState.Screen, 0, row, screenRow)
-		setRowBackground(screenState.Screen, row, screenRow.Style)
+		renderScreenRow(screen, 0, row, screenRow)
+		setRowBackground(screen, row, screenRow.Style)
 	}
 
 	headerLength := len(screenState.Header)
 	for index, screenRow := range screenState.Body {
 		row := index + headerLength
-		renderScreenRow(screenState.Screen, 0, row, screenRow)
+		renderScreenRow(screen, 0, row, screenRow)
 	}
 
 	if len(screenState.Body) != 0 {
-		setRowBackground(screenState.Screen, len(screenState.Header), highlighedStyle)
+		setRowBackground(screen, len(screenState.Header), highlighedStyle)
 	}
 
-	_, height := screenState.Screen.Size()
+	_, height := screen.Size()
 	footerLength := len(screenState.Footer)
 	for index, screenRow := range screenState.Footer {
 		row := height + index - footerLength
-		renderScreenRow(screenState.Screen, 0, row, screenRow)
-		setRowBackground(screenState.Screen, row, screenRow.Style)
+		renderScreenRow(screen, 0, row, screenRow)
+		setRowBackground(screen, row, screenRow.Style)
 	}
 
 	screenState.Screen.Show()
@@ -84,22 +91,45 @@ func getFooter(node *trie.Node) []ScreenRow {
 	return footer
 }
 
-func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
+func updateTrieNodeInScreenState(screenState *ScreenState, rootNode *trie.Node) {
 	body := make([]ScreenRow, 0)
-	for edge, node := range node.Edges {
+	for _, edge := range rootNode.GetEdges() {
+		node := rootNode.Edges[edge]
 		message := fmt.Sprintf("%s - %d", edge.Prefix, node.Count())
-		row := ScreenRow{Message: message, Style: normalStyle, PaddingLeft: 5}
+		row := ScreenRow{Message: message, Style: normalStyle, PaddingLeft: 5, Metadata: node}
 		body = append(body, row)
 	}
 	screenState.Body = body
+	screenState.CurrentBodyRow = 0
 	screenState.render()
+}
+
+func popNodeFromStack(screenState *ScreenState) {
+	nodeStack := screenState.NodeStack
+	if nodeStack.Len() < 2 {
+		return
+	}
+
+	topNodeElement := nodeStack.Back()
+	nodeStack.Remove(topNodeElement)
+	topNodeElement = nodeStack.Back()
+
+	node := topNodeElement.Value.(*trie.Node)
+	updateTrieNodeInScreenState(screenState, node)
+}
+
+func pushNodeIntoStack(screenState *ScreenState, node *trie.Node) {
+	nodeStack := screenState.NodeStack
+	nodeStack.PushBack(node)
+
+	updateTrieNodeInScreenState(screenState, node)
 }
 
 func initScreenState(screen tcell.Screen, node *trie.Node) *ScreenState {
 	header := getHeader(node)
 	footer := getFooter(node)
-	screenState := ScreenState{Screen: screen, Header: header, Footer: footer}
-	updateTrieNodeInScreenState(&screenState, node)
+	screenState := ScreenState{Screen: screen, Header: header, Footer: footer, NodeStack: list.New()}
+	pushNodeIntoStack(&screenState, node)
 	return &screenState
 }
 
@@ -152,6 +182,20 @@ func handleKeyUp(screenState *ScreenState) {
 	screenState.CurrentBodyRow--
 }
 
+func handleKeyLeft(screenState *ScreenState) {
+	popNodeFromStack(screenState)
+}
+
+func handleKeyRight(screenState *ScreenState) {
+	screenRow := screenState.Body[screenState.CurrentBodyRow]
+	node := screenRow.Metadata.(*trie.Node)
+	if len(node.Edges) == 0 {
+		return
+	}
+
+	pushNodeIntoStack(screenState, node)
+}
+
 func handleKeyEvent(screenState *ScreenState, event *tcell.EventKey) {
 	switch event.Key() {
 	case tcell.KeyRune:
@@ -166,6 +210,10 @@ func handleKeyEvent(screenState *ScreenState, event *tcell.EventKey) {
 		handleKeyUp(screenState)
 	case tcell.KeyDown:
 		handleKeyDown(screenState)
+	case tcell.KeyLeft:
+		handleKeyLeft(screenState)
+	case tcell.KeyRight:
+		handleKeyRight(screenState)
 	}
 }
 
