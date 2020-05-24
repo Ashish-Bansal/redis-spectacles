@@ -92,6 +92,37 @@ func TestTrieBFS(t *testing.T) {
 	}
 }
 
+func TestTrieGetEdges(t *testing.T) {
+	node := NewNode()
+	node.Insert("Bat")
+	node.Insert("Bag")
+	node.Insert("Cat")
+	node.Condense()
+
+	expectedPrefixes := []string{"Ba", "Cat"}
+	edges := node.GetEdges()
+	if len(edges) != len(expectedPrefixes) {
+		t.Errorf(
+			"Edge count mismatch. Expected %d, got %d",
+			len(expectedPrefixes),
+			len(edges),
+		)
+	}
+
+	prefixes := make([]string, 0)
+	for _, edge := range edges {
+		prefixes = append(prefixes, edge.Prefix.(string))
+	}
+
+	if !reflect.DeepEqual(expectedPrefixes, prefixes) {
+		t.Errorf(
+			"Trie prefix mismatch. Expected %v, got %v",
+			expectedPrefixes,
+			prefixes,
+		)
+	}
+}
+
 func TestTrieCondensation(t *testing.T) {
 	testcases := [][][]string{
 		{
