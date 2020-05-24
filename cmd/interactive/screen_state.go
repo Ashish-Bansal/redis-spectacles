@@ -3,10 +3,12 @@ package interactive
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"container/list"
 
+	"github.com/Ashish-Bansal/redis-spectacles/internal/consts"
 	"github.com/Ashish-Bansal/redis-spectacles/pkg/trie"
 	"github.com/gdamore/tcell"
 )
@@ -91,14 +93,34 @@ func getFooter(node *trie.Node) []ScreenRow {
 	return footer
 }
 
-func updateTrieNodeInScreenState(screenState *ScreenState, rootNode *trie.Node) {
+func formatCount(count int) string {
+	if count < 10000 {
+		return strconv.Itoa(count)
+	}
+
+	count = count / 1000
+	return fmt.Sprintf("%dK", count)
+}
+
+func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
 	body := make([]ScreenRow, 0)
-	for _, edge := range rootNode.GetEdges() {
-		node := rootNode.Edges[edge]
-		message := fmt.Sprintf("%s - %d", edge.Prefix, node.Count())
-		row := ScreenRow{Message: message, Style: normalStyle, PaddingLeft: 5, Metadata: node}
+	edges := node.GetEdges()
+
+	for _, edge := range edges {
+		childNode := node.Edges[edge]
+		count := childNode.Count()
+		countString := formatCount(count)
+
+		paddingForRightAlignment := consts.PaddingForRightAlignment - len(countString)
+		padding := strings.Repeat(" ", paddingForRightAlignment)
+
+		prefix := edge.Prefix.(string)
+
+		message := padding + countString + " - " + prefix
+		row := ScreenRow{Message: message, Style: normalStyle, PaddingLeft: 5, Metadata: childNode}
 		body = append(body, row)
 	}
+
 	screenState.Body = body
 	screenState.CurrentBodyRow = 0
 	screenState.render()
