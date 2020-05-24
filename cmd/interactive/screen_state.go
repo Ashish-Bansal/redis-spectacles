@@ -8,26 +8,32 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+// ScreenRow represents information about rendering single row on screen
+type ScreenRow struct {
+	Message string
+	Style   tcell.Style
+}
+
 // ScreenState represents screen state based off trie
 type ScreenState struct {
-	Header         []string
-	Body           []string
-	Footer         []string
+	Header         []ScreenRow
+	Body           []ScreenRow
+	Footer         []ScreenRow
 	CurrentBodyRow int
 	Screen         tcell.Screen
 }
 
 func (screenState *ScreenState) render() {
-	for index, message := range screenState.Header {
+	for index, screenRow := range screenState.Header {
 		row := index
-		setStringInScreen(screenState.Screen, 0, row, message, highlighedStyle)
+		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
 		setRowBackground(screenState.Screen, row, highlighedStyle)
 	}
 
 	headerLength := len(screenState.Header)
-	for index, message := range screenState.Body {
+	for index, screenRow := range screenState.Body {
 		row := index + headerLength
-		setStringInScreen(screenState.Screen, 0, row, message, normalStyle)
+		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
 	}
 
 	if len(screenState.Body) != 0 {
@@ -36,32 +42,41 @@ func (screenState *ScreenState) render() {
 
 	_, height := screenState.Screen.Size()
 	footerLength := len(screenState.Footer)
-	for index, message := range screenState.Footer {
+	for index, screenRow := range screenState.Footer {
 		row := height + index - footerLength
-		setStringInScreen(screenState.Screen, 0, row, message, highlighedStyle)
+		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
 		setRowBackground(screenState.Screen, row, highlighedStyle)
 	}
 
 	screenState.Screen.Show()
 }
 
-func getHeader(node *trie.Node) []string {
-	header := make([]string, 0)
-	header = append(header, "redis-spectacles ~ Use the arrow keys to navigate.")
+func getHeader(node *trie.Node) []ScreenRow {
+	header := []ScreenRow{
+		{
+			Message: "redis-spectacles ~ Use the arrow keys to navigate.",
+			Style:   highlighedStyle,
+		},
+	}
 	return header
 }
 
-func getFooter(node *trie.Node) []string {
-	footer := make([]string, 0)
-	footer = append(footer, fmt.Sprintf("Total key count : %d", node.Count()))
+func getFooter(node *trie.Node) []ScreenRow {
+	footer := []ScreenRow{
+		{
+			Message: fmt.Sprintf("Total key count : %d", node.Count()),
+			Style:   highlighedStyle,
+		},
+	}
 	return footer
 }
 
 func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
-	body := make([]string, 0)
+	body := make([]ScreenRow, 0)
 	for edge, node := range node.Edges {
 		message := fmt.Sprintf("%s - %d", edge.Prefix, node.Count())
-		body = append(body, message)
+		row := ScreenRow{Message: message, Style: normalStyle}
+		body = append(body, row)
 	}
 	screenState.Body = body
 	screenState.render()
