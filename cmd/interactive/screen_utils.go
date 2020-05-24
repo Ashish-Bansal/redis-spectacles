@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Ashish-Bansal/redis-spectacles/internal/utils"
 	"github.com/gdamore/tcell"
 )
 
@@ -26,8 +27,11 @@ func initScreen() tcell.Screen {
 }
 
 func setStringInScreen(screen tcell.Screen, columnStart int, row int, message string, style tcell.Style) {
-	for _, c := range message {
-		screen.SetContent(columnStart, row, c, []rune(""), style)
+	width, _ := screen.Size()
+	length := utils.Min(len(message), width)
+	for index := 0; index < length; index++ {
+		character := rune(message[index])
+		screen.SetContent(columnStart, row, character, []rune(""), style)
 		columnStart++
 	}
 	screen.Show()

@@ -3,6 +3,7 @@ package interactive
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Ashish-Bansal/redis-spectacles/pkg/trie"
 	"github.com/gdamore/tcell"
@@ -27,7 +28,7 @@ func (screenState *ScreenState) render() {
 	for index, screenRow := range screenState.Header {
 		row := index
 		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
-		setRowBackground(screenState.Screen, row, highlighedStyle)
+		setRowBackground(screenState.Screen, row, screenRow.Style)
 	}
 
 	headerLength := len(screenState.Header)
@@ -45,7 +46,7 @@ func (screenState *ScreenState) render() {
 	for index, screenRow := range screenState.Footer {
 		row := height + index - footerLength
 		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
-		setRowBackground(screenState.Screen, row, highlighedStyle)
+		setRowBackground(screenState.Screen, row, screenRow.Style)
 	}
 
 	screenState.Screen.Show()
@@ -56,6 +57,10 @@ func getHeader(node *trie.Node) []ScreenRow {
 		{
 			Message: "redis-spectacles ~ Use the arrow keys to navigate.",
 			Style:   highlighedStyle,
+		},
+		{
+			Message: strings.Repeat("-", 500),
+			Style:   normalStyle,
 		},
 	}
 	return header
