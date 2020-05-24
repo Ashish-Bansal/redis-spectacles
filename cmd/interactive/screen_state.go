@@ -89,9 +89,14 @@ func startEventLoop(screenState *ScreenState) {
 
 func handleKeyEvent(screenState *ScreenState, event *tcell.EventKey) {
 	switch event.Key() {
+	case tcell.KeyRune:
+		if event.Rune() == 'q' {
+			screenState.Screen.Fini()
+			os.Exit(0)
+		}
 	case tcell.KeyCtrlC:
 		screenState.Screen.Fini()
-		os.Exit(0)
+		os.Exit(1)
 	}
 }
 
