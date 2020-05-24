@@ -11,8 +11,9 @@ import (
 
 // ScreenRow represents information about rendering single row on screen
 type ScreenRow struct {
-	Message string
-	Style   tcell.Style
+	Message     string
+	Style       tcell.Style
+	PaddingLeft int
 }
 
 // ScreenState represents screen state based off trie
@@ -24,17 +25,23 @@ type ScreenState struct {
 	Screen         tcell.Screen
 }
 
+func renderScreenRow(screen tcell.Screen, column int, row int, screenRow ScreenRow) {
+	message := strings.Repeat(" ", screenRow.PaddingLeft) + screenRow.Message
+	style := screenRow.Style
+	setStringInScreen(screen, column, row, message, style)
+}
+
 func (screenState *ScreenState) render() {
 	for index, screenRow := range screenState.Header {
 		row := index
-		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
+		renderScreenRow(screenState.Screen, 0, row, screenRow)
 		setRowBackground(screenState.Screen, row, screenRow.Style)
 	}
 
 	headerLength := len(screenState.Header)
 	for index, screenRow := range screenState.Body {
 		row := index + headerLength
-		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
+		renderScreenRow(screenState.Screen, 0, row, screenRow)
 	}
 
 	if len(screenState.Body) != 0 {
@@ -45,7 +52,7 @@ func (screenState *ScreenState) render() {
 	footerLength := len(screenState.Footer)
 	for index, screenRow := range screenState.Footer {
 		row := height + index - footerLength
-		setStringInScreen(screenState.Screen, 0, row, screenRow.Message, screenRow.Style)
+		renderScreenRow(screenState.Screen, 0, row, screenRow)
 		setRowBackground(screenState.Screen, row, screenRow.Style)
 	}
 
@@ -69,8 +76,9 @@ func getHeader(node *trie.Node) []ScreenRow {
 func getFooter(node *trie.Node) []ScreenRow {
 	footer := []ScreenRow{
 		{
-			Message: fmt.Sprintf("Total key count : %d", node.Count()),
-			Style:   highlighedStyle,
+			Message:     fmt.Sprintf("Total key count : %d", node.Count()),
+			Style:       highlighedStyle,
+			PaddingLeft: 1,
 		},
 	}
 	return footer
@@ -80,7 +88,7 @@ func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
 	body := make([]ScreenRow, 0)
 	for edge, node := range node.Edges {
 		message := fmt.Sprintf("%s - %d", edge.Prefix, node.Count())
-		row := ScreenRow{Message: message, Style: normalStyle}
+		row := ScreenRow{Message: message, Style: normalStyle, PaddingLeft: 5}
 		body = append(body, row)
 	}
 	screenState.Body = body
