@@ -124,7 +124,7 @@ func (node *Node) Condense() error {
 		if len(childEdges) == 1 {
 			for grandChildEdge, grandChildNode := range childEdges {
 				newKey, err := addable.Add(childEdge.Prefix, grandChildEdge.Prefix)
-				newEdge := &Edge{Prefix: newKey, PrefixCount: 1}
+				newEdge := &Edge{Prefix: newKey, PrefixCount: childEdge.PrefixCount}
 				if err != nil {
 					panic(err)
 				}

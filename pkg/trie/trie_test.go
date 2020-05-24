@@ -137,3 +137,24 @@ func TestTrieCondensation(t *testing.T) {
 		}
 	}
 }
+
+func TestTrieCountAfterCondensation(t *testing.T) {
+	node := NewNode()
+	node.Insert("Key1")
+	node.Insert("Key10")
+	node.Insert("Key11")
+	node.Insert("Key2")
+	node.Insert("Key3")
+
+	initialPrefixCount := node.Count()
+	node.Condense()
+	prefixCountAfterCondenstation := node.Count()
+
+	if initialPrefixCount != prefixCountAfterCondenstation {
+		t.Errorf(
+			"Prefix count mismatch. Expected %d, got %d",
+			initialPrefixCount,
+			prefixCountAfterCondenstation,
+		)
+	}
+}
