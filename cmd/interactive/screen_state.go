@@ -112,10 +112,32 @@ func formatCount(count int) string {
 	return fmt.Sprintf("%dK", count)
 }
 
+func getStackPrefix(screenState *ScreenState) string {
+	nodeStack := screenState.NodeStack
+	prefix := ""
+	for currentNodeElement := nodeStack.Front(); currentNodeElement != nil; currentNodeElement = currentNodeElement.Next() {
+		nextNodeElement := currentNodeElement.Next()
+		if nextNodeElement == nil {
+			continue
+		}
+
+		currentNode := currentNodeElement.Value.(*trie.Node)
+		nextNode := nextNodeElement.Value.(*trie.Node)
+		for edge, node := range currentNode.Edges {
+			if node == nextNode {
+				prefix += edge.Prefix.(string)
+				break
+			}
+		}
+	}
+	return prefix
+}
+
 func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
 	body := make([]ScreenRow, 0)
 	edges := node.GetEdges()
 	edges = sortEdges(screenState, node, edges)
+	stackPrefix := getStackPrefix(screenState)
 
 	for _, edge := range edges {
 		childNode := node.Edges[edge]
@@ -125,7 +147,7 @@ func updateTrieNodeInScreenState(screenState *ScreenState, node *trie.Node) {
 		paddingForRightAlignment := consts.PaddingForRightAlignment - len(countString)
 		padding := strings.Repeat(" ", paddingForRightAlignment)
 
-		prefix := edge.Prefix.(string)
+		prefix := stackPrefix + edge.Prefix.(string)
 
 		message := padding + countString + " - " + prefix
 		row := ScreenRow{Message: message, Style: normalStyle, PaddingLeft: 5, Metadata: childNode}
